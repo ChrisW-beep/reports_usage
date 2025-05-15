@@ -11,19 +11,10 @@ if not prefix:
 base_path = f"/tmp/extracted/{prefix}"
 report_data = {}
 
-# === Step 1: Get Store Name from str.dbf ===
+# === Step 1: Get Store Name from Jenkins parameter ===
 store_name = os.environ.get("STORE_NAME", "Unknown")
 
-# str_path = os.path.join(base_path, "str.dbf")
-#if os.path.exists(str_path):
-   # try:
-       # str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
-       # if not str_df.empty and 'name' in str_df.columns:
-           # store_name = str_df.iloc[0]['name']
-   # except Exception as e:
-       # print(f"⚠️ Could not read str.dbf: {e}")
-
-# === Step 2: Process each day's reports.csv ===
+# === Step 2: Process each subfolder's reports.csv ===
 for subdir in sorted(os.listdir(base_path)):
     csv_path = os.path.join(base_path, subdir, "reports.csv")
     if not os.path.exists(csv_path):
@@ -31,21 +22,20 @@ for subdir in sorted(os.listdir(base_path)):
    
     try:
         df = pd.read_csv(csv_path)
-        df.columns = [col.lower() for col in df.columns]  # <-- normalize column names to lowercase
-        print(f"📄 Day {i} - {len(df)} rows")        
+        df.columns = [col.lower() for col in df.columns]  # normalize to lowercase
+        print(f"📄 Folder {subdir} - {len(df)} rows")        
         
-        # ✅ Ensure 'rundate' is properly parsed
+        # Parse dates
         df['rundate'] = pd.to_datetime(df['rundate'], errors='coerce')
         
-        # ✅ Validate required columns
+        # Validate required columns
         if not all(col in df.columns for col in ['cappname', 'crepname', 'rundate']):
             print(f"⚠️ Missing required columns in {csv_path}")
             continue
         
-        # ✅ Drop rows missing any of the key fields
+        # Drop rows missing key fields
         df = df.dropna(subset=['cappname', 'rundate'])
         
-        # ✅ Optional: Show what you're working with
         print(df[['cappname', 'crepname', 'rundate']].head())
 
         for _, row in df.iterrows():
