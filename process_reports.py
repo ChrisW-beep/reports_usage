@@ -68,8 +68,13 @@ summary = [
 ]
 
 out_path = os.path.join(base_path, "weekly_report_usage.csv")
+
 if summary:
     pd.DataFrame(summary).to_csv(out_path, index=False)
     print(f"✅ Wrote {len(summary)} rows to {out_path}")
 else:
+    if os.path.exists(out_path):
+        os.remove(out_path)
+        print(f"🗑️ Deleted stale empty file: {out_path}")
     print("⚠️ No data to write — check source files.")
+
