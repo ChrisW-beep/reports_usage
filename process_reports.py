@@ -12,15 +12,16 @@ base_path = f"/tmp/extracted/{prefix}"
 report_data = {}
 
 # === Step 1: Get Store Name from str.dbf ===
-store_name = "Unknown"
-str_path = os.path.join(base_path, "str.dbf")
-if os.path.exists(str_path):
-    try:
-        str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
-        if not str_df.empty and 'name' in str_df.columns:
-            store_name = str_df.iloc[0]['name']
-    except Exception as e:
-        print(f"⚠️ Could not read str.dbf: {e}")
+store_name = os.environ.get("STORE_NAME", "Unknown")
+
+# str_path = os.path.join(base_path, "str.dbf")
+#if os.path.exists(str_path):
+   # try:
+       # str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
+       # if not str_df.empty and 'name' in str_df.columns:
+           # store_name = str_df.iloc[0]['name']
+   # except Exception as e:
+       # print(f"⚠️ Could not read str.dbf: {e}")
 
 # === Step 2: Process each day's reports.csv ===
 for subdir in sorted(os.listdir(base_path)):
