@@ -1,7 +1,7 @@
+from collections import defaultdict
 import os
 import pandas as pd
 from dbfread import DBF
-from collections import defaultdict
 
 prefix = os.environ.get("PREFIX")
 if not prefix:
@@ -11,31 +11,42 @@ if not prefix:
 base_path = f"/tmp/extracted/{prefix}"
 report_data = {}
 
-# === Step 1: Get Store Name from Jenkins parameter ===
-store_name = os.environ.get("STORE_NAME", "Unknown")
+# === Step 1: Get Store Name from str.dbf ===
+store_name = "Unknown"
+str_path = os.path.join(base_path, "str.dbf")
+if os.path.exists(str_path):
+    try:
+        str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
+        str_df.columns = [col.lower() for col in str_df.columns]
+        if not str_df.empty and 'name' in str_df.columns:
+            store_name = str_df.iloc[0]['name']
+            print(f"🏪 Store name found: {store_name}")
+        else:
+            print("⚠️ str.dbf loaded but 'name' column not found.")
+    except Exception as e:
+        print(f"⚠️ Could not read str.dbf: {e}")
+else:
+    print(f"⚠️ str.dbf not found at {str_path}")
 
-# === Step 2: Process each subfolder's reports.csv ===
+# === Step 2: Process each day's reports.csv ===
 for subdir in sorted(os.listdir(base_path)):
     csv_path = os.path.join(base_path, subdir, "reports.csv")
     if not os.path.exists(csv_path):
         continue
-   
+
     try:
         df = pd.read_csv(csv_path)
-        df.columns = [col.lower() for col in df.columns]  # normalize to lowercase
-        print(f"📄 Folder {subdir} - {len(df)} rows")        
-        
-        # Parse dates
-        df['rundate'] = pd.to_datetime(df['rundate'], errors='coerce')
-        
-        # Validate required columns
+        df.columns = [col.lower() for col in df.columns]  # Normalize column names
+
+        print(f"📄 Folder {subdir} - {len(df)} rows")
+
         if not all(col in df.columns for col in ['cappname', 'crepname', 'rundate']):
             print(f"⚠️ Missing required columns in {csv_path}")
             continue
-        
-        # Drop rows missing key fields
+
+        df['rundate'] = pd.to_datetime(df['rundate'], errors='coerce')
         df = df.dropna(subset=['cappname', 'rundate'])
-        
+
         print(df[['cappname', 'crepname', 'rundate']].head())
 
         for _, row in df.iterrows():
