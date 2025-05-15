@@ -30,7 +30,8 @@ for i in range(1, 8):
 
     try:
         df = pd.read_csv(csv_path)
-        print(f"📄 Day {i} - {len(df)} rows")
+        df.columns = [col.lower() for col in df.columns]  # <-- normalize column names to lowercase
+        print(f"📄 Day {i} - {len(df)} rows")        
         
         # ✅ Ensure 'rundate' is properly parsed
         df['rundate'] = pd.to_datetime(df['rundate'], errors='coerce')
