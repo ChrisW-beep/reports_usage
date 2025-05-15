@@ -23,11 +23,11 @@ if os.path.exists(str_path):
         print(f"⚠️ Could not read str.dbf: {e}")
 
 # === Step 2: Process each day's reports.csv ===
-for i in range(1, 8):
-    csv_path = os.path.join(base_path, str(i), "reports.csv")
+for subdir in sorted(os.listdir(base_path)):
+    csv_path = os.path.join(base_path, subdir, "reports.csv")
     if not os.path.exists(csv_path):
         continue
-
+   
     try:
         df = pd.read_csv(csv_path)
         df.columns = [col.lower() for col in df.columns]  # <-- normalize column names to lowercase
