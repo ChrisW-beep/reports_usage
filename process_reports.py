@@ -20,41 +20,53 @@ if os.path.exists(str_path):
         if not str_df.empty and 'name' in str_df.columns:
             store_name = str_df.iloc[0]['name']
     except Exception as e:
-        print(f"⚠️ Could not read str.dbf for store name: {e}")
+        print(f"⚠️ Could not read str.dbf: {e}")
 
-# === Step 2: Collect (cappname, crepname) pairs and their rundates ===
+# === Step 2: Process each day's reports.csv ===
 for i in range(1, 8):
     csv_path = os.path.join(base_path, str(i), "reports.csv")
     if not os.path.exists(csv_path):
         continue
+
     try:
         df = pd.read_csv(csv_path)
+        print(f"📄 Day {i} - {len(df)} rows")
+        
+        # ✅ Ensure 'rundate' is properly parsed
+        df['rundate'] = pd.to_datetime(df['rundate'], errors='coerce')
+        
+        # ✅ Validate required columns
+        if not all(col in df.columns for col in ['cappname', 'crepname', 'rundate']):
+            print(f"⚠️ Missing required columns in {csv_path}")
+            continue
+        
+        # ✅ Drop rows missing any of the key fields
+        df = df.dropna(subset=['cappname', 'rundate'])
+        
+        # ✅ Optional: Show what you're working with
+        print(df[['cappname', 'crepname', 'rundate']].head())
+
+        for _, row in df.iterrows():
+            key = (row['cappname'], row['crepname'])
+            report_data.setdefault(key, set()).add(row['rundate'])
+
     except Exception as e:
-        print(f"⚠️ Could not read {csv_path}: {e}")
-        continue
+        print(f"⚠️ Could not process {csv_path}: {e}")
 
-    for _, row in df.iterrows():
-        capp = row.get('cappname')
-        crep = row.get('crepname')
-        run = row.get('rundate')
-
-        if pd.notnull(capp) and pd.notnull(run):
-            key = (capp, crep)
-            if key not in report_data:
-                report_data[key] = set()
-            report_data[key].add(run)
-
-# === Step 3: Build summary ===
-summary = []
-for (capp, crep), rundates in report_data.items():
-    summary.append({
+# === Step 3: Write summary CSV ===
+summary = [
+    {
         'store': store_name,
-        'cappname': capp,
-        'crepname': crep if pd.notnull(crep) else '',
-        'days_ran': len(rundates)
-    })
+        'cappname': k[0],
+        'crepname': k[1],
+        'days_ran': len(v)
+    }
+    for k, v in report_data.items()
+]
 
-# === Step 4: Save summary ===
 out_path = os.path.join(base_path, "weekly_report_usage.csv")
-pd.DataFrame(summary).to_csv(out_path, index=False)
-print(f"✅ Saved summary to {out_path}")
+if summary:
+    pd.DataFrame(summary).to_csv(out_path, index=False)
+    print(f"✅ Wrote {len(summary)} rows to {out_path}")
+else:
+    print("⚠️ No data to write — check source files.")
