@@ -69,12 +69,14 @@ summary = [
 
 out_path = os.path.join(base_path, "weekly_report_usage.csv")
 
-if summary:
-    pd.DataFrame(summary).to_csv(out_path, index=False)
-    print(f"✅ Wrote {len(summary)} rows to {out_path}")
+isummary_df = pd.DataFrame(summary)
+
+if not summary_df.empty:
+    summary_df.to_csv(out_path, index=False)
+    print(f"✅ Wrote {len(summary_df)} rows to {out_path}")
 else:
     if os.path.exists(out_path):
-        os.remove(out_path)
-        print(f"🗑️ Deleted stale empty file: {out_path}")
+        os.remove(out_path)  # ensure no empty file exists
     print("⚠️ No data to write — check source files.")
+
 
