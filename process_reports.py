@@ -69,7 +69,7 @@ summary = [
 
 out_path = os.path.join(base_path, "weekly_report_usage.csv")
 
-isummary_df = pd.DataFrame(summary)
+summary_df = pd.DataFrame(summary)
 
 if not summary_df.empty:
     summary_df.to_csv(out_path, index=False)
