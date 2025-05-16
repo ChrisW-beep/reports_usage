@@ -1,26 +1,45 @@
-import pandas as pd
+# summarize_global_usage.py
 import os
+import sys
+import pandas as pd
+from collections import defaultdict
 
-input_file = "/tmp/weekly_report_aggregated.csv"
-output_file = "/tmp/weekly_report_global_summary.csv"
+if len(sys.argv) != 3:
+    print("Usage: summarize_global_usage.py <input_dir> <output_csv>")
+    sys.exit(1)
 
-if not os.path.exists(input_file):
-    print(f"❌ Input file not found: {input_file}")
-    exit(1)
+input_dir = sys.argv[1]
+output_path = sys.argv[2]
 
-df = pd.read_csv(input_file)
+usage_summary = defaultdict(lambda: {'stores': set(), 'total_runs': 0})
 
-if df.empty:
-    print("⚠️ Input CSV is empty.")
-    exit(0)
+for prefix in os.listdir(input_dir):
+    path = os.path.join(input_dir, prefix, "weekly_report_usage.csv")
+    if not os.path.isfile(path) or os.path.getsize(path) == 0:
+        continue
 
-# Group by cappname + crepname to calculate total days and unique store count
-grouped = df.groupby(['cappname', 'crepname'])
+    try:
+        df = pd.read_csv(path)
+        for _, row in df.iterrows():
+            key = (row['cappname'], row['crepname'])
+            usage_summary[key]['stores'].add(row['store'])
+            usage_summary[key]['total_runs'] += row['days_ran']
+    except Exception as e:
+        print(f"⚠️ Failed to process {path}: {e}")
 
-summary = grouped.agg(
-    stores_ran=('store', 'nunique'),
-    total_days=('days_ran', 'sum')
-).reset_index()
+# Build summary output
+summary_rows = []
+for (cappname, crepname), data in usage_summary.items():
+    summary_rows.append({
+        'cappname': cappname,
+        'crepname': crepname,
+        'stores_used': len(data['stores']),
+        'total_days_ran': data['total_runs']
+    })
 
-summary.to_csv(output_file, index=False)
-print(f"✅ Global summary written to {output_file}")
+if summary_rows:
+    pd.DataFrame(summary_rows).to_csv(output_path, index=False)
+    print(f"✅ Global summary written to {output_path}")
+else:
+    print("⚠️ No usage data found across stores.")
+    sys.exit(1)
