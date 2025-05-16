@@ -19,10 +19,15 @@ if os.path.exists(str_path):
         str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
         str_df.columns = [col.lower() for col in str_df.columns]
         if not str_df.empty and 'name' in str_df.columns:
-            store_name = str_df.iloc[0]['name']
+        first_nonempty = str_df['name'].dropna().astype(str).str.strip()
+        if not first_nonempty.empty and first_nonempty.iloc[0]:
+            store_name = first_nonempty.iloc[0]
             print(f"🏪 Store name found: {store_name}")
-        else:
-            print("⚠️ str.dbf loaded but 'name' column not found.")
+    else:
+        print("⚠️ 'name' column exists but is empty.")
+else:
+    print("⚠️ str.dbf loaded but 'name' column not found.")
+
     except Exception as e:
         print(f"⚠️ Could not read str.dbf: {e}")
 else:
