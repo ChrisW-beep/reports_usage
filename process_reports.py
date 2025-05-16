@@ -14,20 +14,20 @@ report_data = {}
 # === Step 1: Get Store Name from str.dbf ===
 store_name = "Unknown"
 str_path = os.path.join(base_path, "str.dbf")
+
 if os.path.exists(str_path):
     try:
-    str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
-    str_df.columns = [col.lower() for col in str_df.columns]
-    if not str_df.empty and 'name' in str_df.columns:
-    first_nonempty = str_df['name'].dropna().astype(str).str.strip()
-    if not first_nonempty.empty and first_nonempty.iloc[0]:
-        store_name = first_nonempty.iloc[0]
-        print(f"🏪 Store name found: {store_name}")
-    else:
-        print("⚠️ 'name' column exists but is empty.")
-else:
-    print("⚠️ str.dbf loaded but 'name' column not found.")
-
+        str_df = pd.DataFrame(iter(DBF(str_path, load=True)))
+        str_df.columns = [col.lower() for col in str_df.columns]
+        if not str_df.empty and 'name' in str_df.columns:
+            first_nonempty = str_df['name'].dropna().astype(str).str.strip()
+            if not first_nonempty.empty and first_nonempty.iloc[0]:
+                store_name = first_nonempty.iloc[0]
+                print(f"🏪 Store name found: {store_name}")
+            else:
+                print("⚠️ 'name' column exists but is empty.")
+        else:
+            print("⚠️ str.dbf loaded but 'name' column not found.")
     except Exception as e:
         print(f"⚠️ Could not read str.dbf: {e}")
 else:
@@ -50,7 +50,9 @@ for subdir in sorted(os.listdir(base_path)):
             continue
 
         df['rundate'] = pd.to_datetime(df['rundate'], errors='coerce')
+        before = len(df)
         df = df.dropna(subset=['cappname', 'rundate'])
+        print(f"✅ Valid rows after dropna: {len(df)} (discarded {before - len(df)})")
 
         print(df[['cappname', 'crepname', 'rundate']].head())
 
@@ -73,7 +75,6 @@ summary = [
 ]
 
 out_path = os.path.join(base_path, "weekly_report_usage.csv")
-
 summary_df = pd.DataFrame(summary)
 
 if not summary_df.empty:
@@ -83,5 +84,3 @@ else:
     if os.path.exists(out_path):
         os.remove(out_path)  # ensure no empty file exists
     print("⚠️ No data to write — check source files.")
-
-
